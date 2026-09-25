@@ -1,0 +1,45 @@
+name: Go Quality Check & CI
+
+on:
+  pull_request:
+    branches: [ "main" ] # รัน CI เมื่อมี PR ยื่นเข้ามาขอเข้า main
+  push:
+    branches: [ "main" ] # รันซ้ำอีกครั้งเมื่อ Merge เข้า main เรียบร้อยแล้ว
+
+jobs:
+  test:
+    name: Run Unit Tests & Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Run Unit Tests
+        run: go test -v -race -cover ./...
+
+  build-check:
+    name: Verify Build
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Verify Go Build
+        run: CGO_ENABLED=0 GOOS=linux go build -v ./...
