@@ -24,9 +24,13 @@ func NewAuthService(
 
 }
 
-func (a *AuthService) Login(username, password string) (string, error) {
+func (a *AuthService) Login(username, password, hospitalId string) (string, error) {
 	staff, err := a.staffRepo.FindByUsername(username)
 	if err != nil {
+		return "", errors.New("invalid credentials")
+	}
+
+	if staff.HospitalId.Value() != hospitalId {
 		return "", errors.New("invalid credentials")
 	}
 
