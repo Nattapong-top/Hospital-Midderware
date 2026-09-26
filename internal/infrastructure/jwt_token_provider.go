@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"Hospital-Midderware/internal/domain"
+	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -18,6 +19,11 @@ func NewJWTTokenProvider(secretKey string) *JwtTokenProvider {
 }
 
 func (j *JwtTokenProvider) GenerateToken(staff *domain.Staff) (string, error) {
+
+	if staff == nil {
+		return "", errors.New("ไม่มีข้อมูล staff ในการสร้างบัตรผ่านครับ")
+	}
+
 	claims := jwt.MapClaims{
 		"username":    staff.Username.Value(),
 		"hospital_id": staff.HospitalId.Value(),
@@ -25,11 +31,5 @@ func (j *JwtTokenProvider) GenerateToken(staff *domain.Staff) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	tokenString, err := token.SignedString(j.secretKey)
-	if err != nil {
-		return "", err
-	}
-
-	return tokenString, nil
+	return token.SignedString(j.secretKey)
 }
