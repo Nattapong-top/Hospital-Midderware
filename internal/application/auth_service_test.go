@@ -20,7 +20,7 @@ func TestAuthService_Login_Success(t *testing.T) {
 
 	authService := NewAuthService(repo, hasher, tokenProvider)
 
-	token, err := authService.Login("nattapong", "RakTukKhon5555")
+	token, err := authService.Login("nattapong", "RakTukKhon5555", "HN99999")
 
 	if err != nil {
 		t.Fatalf("คาดว่า login สำเร็จ แต่ได้ error: %v", err)
@@ -38,7 +38,7 @@ func TestAuthService_Login_UserNotFound_ShouldFail(t *testing.T) {
 
 	authService := NewAuthService(repo, hasher, tokenProvider)
 
-	_, err := authService.Login("unknown_user", "RakTukKhon5555")
+	_, err := authService.Login("unknown_user", "RakTukKhon5555", "HN99999")
 
 	if err == nil {
 		t.Fatal("คาดว่าจะเกิด error เมื่อไม่พบผู้ใช้งาน แต่กลับผ่าน")
@@ -63,7 +63,7 @@ func TestAuthService_Login_WrongPassword_ShouldFail(t *testing.T) {
 
 	authService := NewAuthService(repo, hasher, tokenProvider)
 
-	_, err = authService.Login("nattapong", "wrong_password")
+	_, err = authService.Login("nattapong", "wrong_password", "HN99999")
 
 	if err == nil {
 		t.Fatal("คาดว่าจะเกิด error เมื่อพิมพ์รหัสผ่านผิด แต่กลับผ่าน")
