@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"Hospital-Midderware/internal/domain"
+	"context"
 	"database/sql"
 	"errors"
 )
@@ -59,4 +60,34 @@ func (r *PostgresStaffRepository) FindByUsername(username string) (*domain.Staff
 	}
 
 	return staff, nil
+}
+
+func (r *PostgresStaffRepository) Create(ctx context.Context, staff *domain.Staff) error {
+	query := `
+		INSERT INTO staffs (username, password, hospital_id)
+		VALUES ($1, $2, $3)
+	`
+	_, err := r.db.ExecContext(
+		ctx,
+		query,
+		staff.Username.Value(),
+		staff.Password.Value(),
+		staff.HospitalId.Value(),
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *PostgresStaffRepository) ExistsByUsername(ctx context.Context, username string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM staffs WHERE username = $1)`
+
+	var exists bool
+	err := r.db.QueryRowContext(ctx, query, username).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }
