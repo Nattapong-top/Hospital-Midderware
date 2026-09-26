@@ -2,11 +2,22 @@ package infrastructure
 
 import (
 	"Hospital-Midderware/internal/domain"
+	"context"
 	"errors"
 )
 
 type InMemoryStaffRepository struct {
 	staffs map[string]*domain.Staff
+}
+
+func (r *InMemoryStaffRepository) Create(ctx context.Context, staff *domain.Staff) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *InMemoryStaffRepository) ExistsByUsername(ctx context.Context, username string) (bool, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func NewInMemoryStaffRepository() *InMemoryStaffRepository {
