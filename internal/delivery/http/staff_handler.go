@@ -1,10 +1,11 @@
 package http
 
 import (
+	"Hospital-Midderware/internal/application"
 	"encoding/json"
 	"net/http"
 
-	"Hospital-Midderware/internal/application"
+	"github.com/gin-gonic/gin"
 )
 
 type LoginRequest struct {
@@ -22,29 +23,65 @@ type ErrorResponse struct {
 }
 
 type StaffHandler struct {
-	authService *application.AuthService
+	authService  *application.AuthService
+	staffService *application.StaffService
 }
 
-func NewStaffHandler(authService *application.AuthService) *StaffHandler {
+type CreateStaffRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Hospital string `json:"hospital"`
+}
+
+type CreateStaffResponse struct {
+	Username string `json:"username"`
+	Hospital string `json:"hospital"`
+}
+
+func NewStaffHandler(authService *application.AuthService, staffService *application.StaffService) *StaffHandler {
 	return &StaffHandler{
-		authService: authService,
+		authService:  authService,
+		staffService: staffService,
 	}
 }
 
-func (h *StaffHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (h *StaffHandler) Login(c *gin.Context) {
 	var req LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondJSON(w, http.StatusBadRequest, ErrorResponse{Error: "invalid request body"})
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
 		return
 	}
 
 	token, err := h.authService.Login(req.Username, req.Password, req.Hospital)
 	if err != nil {
-		respondJSON(w, http.StatusUnauthorized, ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	respondJSON(w, http.StatusOK, LoginResponse{Token: token})
+	c.JSON(http.StatusOK, gin.H{"token": token})
+}
+
+func (h *StaffHandler) CreateStaff(c *gin.Context) {
+	var req CreateStaffRequest
+	// 1. Bind JSON จาก Request Body
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid json body"})
+		return
+	}
+
+	// 2. เรียก Business Logic ใน Application Layer
+	err := h.staffService.CreateStaff(c.Request.Context(), application.CreateStaffRequest(req))
+	if err != nil {
+		// สามารถเช็ก Error Type คืนค่า 400 Bad Request หรือ 409 Conflict ตาม Logic ได้
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 3. Response Success HTTP 201 Created
+	c.JSON(http.StatusCreated, CreateStaffResponse{
+		Username: req.Username,
+		Hospital: req.Hospital,
+	})
 }
 
 func respondJSON(w http.ResponseWriter, statusCode int, payload any) {

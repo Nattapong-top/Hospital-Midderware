@@ -16,8 +16,8 @@ func (r *InMemoryStaffRepository) Create(ctx context.Context, staff *domain.Staf
 }
 
 func (r *InMemoryStaffRepository) ExistsByUsername(ctx context.Context, username string) (bool, error) {
-	//TODO implement me
-	panic("implement me")
+	_, exists := r.staffs[username]
+	return exists, nil
 }
 
 func NewInMemoryStaffRepository() *InMemoryStaffRepository {

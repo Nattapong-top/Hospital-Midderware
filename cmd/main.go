@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	httpDelivery "Hospital-Midderware/internal/delivery/http"
 	"Hospital-Midderware/internal/infrastructure"
 
+	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 )
 
@@ -28,19 +28,30 @@ func main() {
 	tokenProvider := infrastructure.NewJWTTokenProvider(jwtSecret)
 
 	authService := application.NewAuthService(staffRepo, hasher, tokenProvider)
-	staffHandler := httpDelivery.NewStaffHandler(authService)
+	staffService := application.NewStaffService(staffRepo, hasher)
+	staffHandler := httpDelivery.NewStaffHandler(authService, &staffService)
 
 	log.Println("ประกอบร่าง Dependencies เรียบร้อย")
 
-	// 3. Register Routes (Go 1.22+ ServeMux Routing)
-	mux := http.NewServeMux()
-	mux.HandleFunc("POST /staff/login", staffHandler.Login)
-	mux.HandleFunc("POST /api/v1/auth/login", staffHandler.Login)
+	// 3. Register Routes ด้วย Gin Router
+	r := gin.Default()
+
+	// Auth Routes
+	r.POST("/staff/login", staffHandler.Login)
+
+	// API v1 Grouping
+	v1 := r.Group("/api/v1")
+	{
+		v1.POST("/auth/login", staffHandler.Login)
+		v1.POST("/staff/create", staffHandler.CreateStaff) // 🟢 ผูก CreateStaff Route
+	}
 
 	// 4. Start HTTP Server
 	port := getEnv("SERVER_PORT", ":8080")
-	log.Printf("HTTP Server กำลังทำงานที่พอร์ต %s ...\n", port)
-	if err := http.ListenAndServe(port, mux); err != nil {
+	log.Printf("HTTP Server (Gin) กำลังทำงานที่พอร์ต %s ...\n", port)
+
+	// Gin ใช้ r.Run(port) ในการเริ่มเซิร์ฟเวอร์
+	if err := r.Run(port); err != nil {
 		log.Fatalf("Server ทำงานผิดพลาด: %v", err)
 	}
 }
