@@ -1,35 +1,64 @@
 package infrastructure
 
 import (
-	"Hospital-Midderware/internal/domain"
 	"errors"
 	"time"
+
+	"Hospital-Midderware/internal/domain"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type JwtTokenProvider struct {
-	secretKey []byte
+type JWTClaims struct {
+	Username string `json:"username"`
+	Hospital string `json:"hospital_id"`
+	jwt.RegisteredClaims
 }
 
-func NewJWTTokenProvider(secretKey string) *JwtTokenProvider {
-	return &JwtTokenProvider{
-		secretKey: []byte(secretKey),
-	}
+type JWTTokenProvider struct {
+	secretKey string
 }
 
-func (j *JwtTokenProvider) GenerateToken(staff *domain.Staff) (string, error) {
+func NewJWTTokenProvider(secretKey string) *JWTTokenProvider {
+	return &JWTTokenProvider{secretKey: secretKey}
+}
+
+func (p *JWTTokenProvider) GenerateToken(staff *domain.Staff) (string, error) {
 
 	if staff == nil {
-		return "", errors.New("ไม่มีข้อมูล staff ในการสร้างบัตรผ่านครับ")
+		return "", errors.New("cannot generate token for nil staff")
 	}
 
-	claims := jwt.MapClaims{
-		"username":    staff.Username.Value(),
-		"hospital_id": staff.HospitalId.Value(),
-		"exp":         time.Now().Add(24 * time.Hour).Unix(),
+	claims := JWTClaims{
+		Username:  staff.Username.Value(),
+		Hospital:  staff.HospitalId.Value(),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(j.secretKey)
+	return token.SignedString([]byte(p.secretKey))
+}
+
+func (p *JWTTokenProvider) ValidateToken(tokenStr string) (*domain.CustomClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("unexpected signing method")
+		}
+		return []byte(p.secretKey), nil
+	})
+
+	if err != nil || !token.Valid {
+		return nil, errors.New("invalid token")
+	}
+
+	claims, ok := token.Claims.(*JWTClaims)
+	if !ok {
+		return nil, errors.New("invalid token claims")
+	}
+
+	return &domain.CustomClaims{
+		Username: claims.Username,
+		Hospital: claims.Hospital,
+	}, nil
 }
