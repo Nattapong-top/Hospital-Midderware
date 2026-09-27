@@ -7,28 +7,58 @@ import (
 	"Hospital-Middleware/internal/infrastructure"
 )
 
-type dummyAdapter struct{}
+type dummyAdapter struct {
+	name string
+}
 
 func (d *dummyAdapter) Search(criteria domain.SearchCriteria) (*domain.PatientDTO, error) {
 	return nil, nil
 }
 
 func TestHospitalResolver_Resolve_Success(t *testing.T) {
-	adapter := &dummyAdapter{}
-	resolver := infrastructure.NewHospitalResolver(adapter)
+	adapterA := &dummyAdapter{name: "AdapterA"}
+	adapterB := &dummyAdapter{name: "AdapterB"}
+	resolver := infrastructure.NewHospitalResolver(adapterA, adapterB)
 
-	supportedIDs := []string{"HOSP_A", "HN99999", "HN12345"}
-	for _, id := range supportedIDs {
-		t.Run("Resolve "+id, func(t *testing.T) {
-			resolvedAdapter, err := resolver.Resolve(id)
-			if err != nil {
-				t.Errorf("คาดหวังว่าจะ resolve สำเร็จสำหรับ ID %s แต่ได้ error: %v", id, err)
-			}
-			if resolvedAdapter == nil {
-				t.Errorf("คาดหวัง adapter แต่ได้ nil สำหรับ ID %s", id)
-			}
-		})
-	}
+	t.Run("Resolve HN12345 to Hospital A", func(t *testing.T) {
+		resolved, err := resolver.Resolve("HN12345")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if resolved != adapterA {
+			t.Errorf("expected adapterA for HN12345")
+		}
+	})
+
+	t.Run("Resolve HOSP_A to Hospital A", func(t *testing.T) {
+		resolved, err := resolver.Resolve("HOSP_A")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if resolved != adapterA {
+			t.Errorf("expected adapterA for HOSP_A")
+		}
+	})
+
+	t.Run("Resolve HN99999 to Hospital B", func(t *testing.T) {
+		resolved, err := resolver.Resolve("HN99999")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if resolved != adapterB {
+			t.Errorf("expected adapterB for HN99999")
+		}
+	})
+
+	t.Run("Resolve HOSP_B to Hospital B", func(t *testing.T) {
+		resolved, err := resolver.Resolve("HOSP_B")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if resolved != adapterB {
+			t.Errorf("expected adapterB for HOSP_B")
+		}
+	})
 }
 
 func TestHospitalResolver_Resolve_UnknownID_ShouldFailWithThaiError(t *testing.T) {
