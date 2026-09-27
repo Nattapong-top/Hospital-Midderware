@@ -9,27 +9,13 @@ import (
 	"Hospital-Middleware/internal/application"
 	httpDelivery "Hospital-Middleware/internal/delivery/http"
 	"Hospital-Middleware/internal/domain"
+	"Hospital-Middleware/internal/testutil"
 
 	"github.com/gin-gonic/gin"
 )
 
-type mockAdapter struct {
-	patient *domain.PatientDTO
-	err     error
-}
-
-func (m *mockAdapter) Search(criteria domain.SearchCriteria) (*domain.PatientDTO, error) {
-	return m.patient, m.err
-}
-
-type mockResolver struct {
-	adapter domain.ExternalAPIAdapter
-	err     error
-}
-
-func (m *mockResolver) Resolve(hospitalID string) (domain.ExternalAPIAdapter, error) {
-	return m.adapter, m.err
-}
+type mockAdapter = testutil.MockAdapter
+type mockResolver = testutil.MockResolver
 
 func TestPatientHandler_SearchPatient_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
@@ -39,8 +25,8 @@ func TestPatientHandler_SearchPatient_Success(t *testing.T) {
 		NationalID:  "1100200300400",
 		PatientHN:   "HN-12345",
 	}
-	adapter := &mockAdapter{patient: mockPat}
-	resolver := &mockResolver{adapter: adapter}
+	adapter := &mockAdapter{Patient: mockPat}
+	resolver := &mockResolver{Adapter: adapter}
 	searchUC := application.NewSearchPatient(resolver)
 	handler := httpDelivery.NewPatientHandler(searchUC)
 
@@ -104,7 +90,7 @@ func TestPatientHandler_SearchPatient_InvalidCriteria(t *testing.T) {
 func TestPatientHandler_SearchPatient_ResolverError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	resolver := &mockResolver{err: errors.New("unsupported hospital")}
+	resolver := &mockResolver{Err: errors.New("unsupported hospital")}
 	searchUC := application.NewSearchPatient(resolver)
 	handler := httpDelivery.NewPatientHandler(searchUC)
 
