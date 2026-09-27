@@ -35,16 +35,41 @@ func (a *HospitalAAPIAdapter) Search(criteria domain.SearchCriteria) (*domain.Pa
 		targetID = criteria.PassportID
 	}
 
-	if targetID == "" {
-		return nil, errors.New("hospital A search requires national_id or passport_id")
+	var targetURL string
+	if targetID != "" {
+		targetURL = fmt.Sprintf("%s/patient/search/%s", a.baseURL, targetID)
+	} else {
+		targetURL = fmt.Sprintf("%s/patient/search", a.baseURL)
 	}
 
-	// 2. สร้าง Request URL
-	url := fmt.Sprintf("%s/patient/search/%s", a.baseURL, targetID)
-
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequest(http.MethodGet, targetURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	q := req.URL.Query()
+	if criteria.FirstName != "" {
+		q.Add("first_name", criteria.FirstName)
+	}
+	if criteria.MiddleName != "" {
+		q.Add("middle_name", criteria.MiddleName)
+	}
+	if criteria.LastName != "" {
+		q.Add("last_name", criteria.LastName)
+	}
+	if criteria.DateOfBirth != "" {
+		q.Add("date_of_birth", criteria.DateOfBirth)
+	}
+	if criteria.PhoneNumber != "" {
+		q.Add("phone_number", criteria.PhoneNumber)
+	}
+	if criteria.Email != "" {
+		q.Add("email", criteria.Email)
+	}
+	req.URL.RawQuery = q.Encode()
+
+	if targetID == "" && q.Encode() == "" {
+		return nil, errors.New("hospital A search requires national_id, passport_id, or other search criteria")
 	}
 
 	// 3. ยิง HTTP Request
