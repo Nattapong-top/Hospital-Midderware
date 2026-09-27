@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"Hospital-Midderware/internal/application"
-	"Hospital-Midderware/internal/domain"
-	"Hospital-Midderware/internal/infrastructure"
+	"Hospital-Middleware/internal/application"
+	"Hospital-Middleware/internal/domain"
+	"Hospital-Middleware/internal/infrastructure"
 
 	"github.com/gin-gonic/gin"
 )

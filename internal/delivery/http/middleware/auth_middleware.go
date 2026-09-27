@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"Hospital-Midderware/internal/domain"
+	"Hospital-Middleware/internal/domain"
 
 	"github.com/gin-gonic/gin"
 )

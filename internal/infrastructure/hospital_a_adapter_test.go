@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"Hospital-Midderware/internal/domain"
-	"Hospital-Midderware/internal/infrastructure"
+	"Hospital-Middleware/internal/domain"
+	"Hospital-Middleware/internal/infrastructure"
 )
 
 func TestHospitalAAPIAdapter_Search_Success(t *testing.T) {

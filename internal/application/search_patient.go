@@ -3,7 +3,7 @@ package application
 import (
 	"fmt"
 
-	"Hospital-Midderware/internal/domain"
+	"Hospital-Middleware/internal/domain"
 )
 
 type SearchPatient struct {

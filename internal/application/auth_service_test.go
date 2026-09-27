@@ -1,8 +1,8 @@
 package application
 
 import (
-	"Hospital-Midderware/internal/domain"
-	"Hospital-Midderware/internal/infrastructure"
+	"Hospital-Middleware/internal/domain"
+	"Hospital-Middleware/internal/infrastructure"
 	"testing"
 )
 
