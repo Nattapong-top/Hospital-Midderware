@@ -27,7 +27,7 @@ func (r *InMemoryStaffRepository) FindByUsername(username string) (*domain.Staff
 func (r *InMemoryStaffRepository) Create(ctx context.Context, staff *domain.Staff) error {
 	username := staff.Username.Value()
 	if _, exists := r.staffs[username]; exists {
-		return errors.New("username นี้มีอยู่ในระบบแล้วครับ")
+		return domain.ErrUserAlreadyExists
 	}
 	r.staffs[username] = staff
 	return nil

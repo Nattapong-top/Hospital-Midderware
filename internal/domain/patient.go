@@ -1,7 +1,5 @@
 package domain
 
-import "errors"
-
 type SearchCriteria struct {
 	NationalID  string
 	PassportID  string
@@ -23,7 +21,7 @@ func (s *SearchCriteria) Validate() error {
 		s.DateOfBirth == "" &&
 		s.PhoneNumber == "" &&
 		s.Email == "" {
-		return errors.New("at least one search criterion must be provided")
+		return ErrInvalidCriteria
 	}
 	return nil
 }

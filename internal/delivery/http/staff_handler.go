@@ -1,10 +1,12 @@
 package http
 
 import (
-	"Hospital-Middleware/internal/application"
 	"encoding/json"
+	"errors"
 	"net/http"
-	"strings"
+
+	"Hospital-Middleware/internal/application"
+	"Hospital-Middleware/internal/domain"
 
 	"github.com/gin-gonic/gin"
 )
@@ -73,7 +75,7 @@ func (h *StaffHandler) CreateStaff(c *gin.Context) {
 	// 2. เรียก Business Logic ใน Application Layer
 	err := h.staffService.CreateStaff(c.Request.Context(), application.CreateStaffRequest(req))
 	if err != nil {
-		if strings.Contains(err.Error(), "มีอยู่ในระบบแล้ว") || strings.Contains(err.Error(), "already exists") {
+		if errors.Is(err, domain.ErrUserAlreadyExists) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
