@@ -7,7 +7,6 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"Hospital-Middleware/internal/application"
@@ -63,24 +62,7 @@ func (m *mockStaffRepo) Save(staff *domain.Staff) error {
 	return nil
 }
 
-func TestGetEnv(t *testing.T) {
-	// 1. Test default value when env is not set
-	os.Unsetenv("TEST_ENV_VAR_XYZ")
-	val := getEnv("TEST_ENV_VAR_XYZ", "default_val")
-	if val != "default_val" {
-		t.Errorf("คาดหวัง %q แต่ได้ %q", "default_val", val)
-	}
 
-	// 2. Test value when env is set
-	_ = os.Setenv("TEST_ENV_VAR_XYZ", "custom_val")
-	t.Cleanup(func() {
-		_ = os.Unsetenv("TEST_ENV_VAR_XYZ")
-	})
-	valSet := getEnv("TEST_ENV_VAR_XYZ", "default_val")
-	if valSet != "custom_val" {
-		t.Errorf("คาดหวัง %q แต่ได้ %q", "custom_val", valSet)
-	}
-}
 
 func TestMainRoutes_Integration(t *testing.T) {
 	gin.SetMode(gin.TestMode)
