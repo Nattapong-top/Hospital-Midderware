@@ -49,5 +49,5 @@ func (s *StaffService) CreateStaff(ctx context.Context, req CreateStaffRequest) 
 		return err
 	}
 
-	return s.staffRepo.Save(staff)
+	return s.staffRepo.Create(ctx, staff)
 }

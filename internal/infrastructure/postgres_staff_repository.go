@@ -19,26 +19,35 @@ func NewPostgresStaffRepository(db *sql.DB) *PostgresStaffRepository {
 
 func (r *PostgresStaffRepository) Save(staff *domain.Staff) error {
 	query := `
-			INSERT INTO staffs (username, password, hospital_id, current_version, previous_version)
-			VALUES ($1, $2, $3, $4, $5)
-			ON CONFLICT (username) DO UPDATE
-			SET password = EXCLUDED.password,
-				hospital_id = EXCLUDED.hospital_id,
-				current_version = EXCLUDED.current_version,
-				previous_version = EXCLUDED.previous_version,
-				updated_at = CURRENT_TIMESTAMP
+		UPDATE staffs
+		SET password = $2,
+			hospital_id = $3,
+			current_version = $4,
+			previous_version = $5,
+			updated_at = CURRENT_TIMESTAMP
+		WHERE username = $1 AND current_version = $6
 	`
 
-	_, err := r.db.Exec(
+	result, err := r.db.Exec(
 		query,
 		staff.Username.Value(),
 		staff.Password.Value(),
 		staff.HospitalId.Value(),
 		staff.Version.CurrentNumber(),
 		staff.Version.PreviousNumber(),
+		staff.Version.PreviousNumber(),
 	)
 	if err != nil {
-		return errors.New("เกิดข้อผิดพลาดในการบันทึกข้อมูลพนักงานลงฐานข้อมูลครับ: " + err.Error())
+		return errors.New("เกิดข้อผิดพลาดในการอัปเดตข้อมูลพนักงานครับ: " + err.Error())
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return errors.New("เกิดข้อผิดพลาดในการตรวจสอบผลการอัปเดตครับ: " + err.Error())
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("ข้อมูลพนักงานถูกแก้ไขโดยผู้อื่นแล้ว กรุณาลองใหม่อีกครั้งครับ")
 	}
 
 	return nil

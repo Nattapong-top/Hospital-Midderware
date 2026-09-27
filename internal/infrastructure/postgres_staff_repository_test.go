@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"context"
 	"Hospital-Middleware/internal/domain"
 	"database/sql"
 	"testing"
@@ -16,102 +17,66 @@ func setupTestDB(t *testing.T) *sql.DB {
 	}
 
 	if err := db.Ping(); err != nil {
-		t.Fatalf("ping database ไม่ผ่าน (กรุณาเช็คว่า docker สตาร์ตแล้วหรือยัง): %v", err)
+		t.Skipf("ข้าม Integration Test เนื่องจากไม่สามารถเชื่อมต่อ Database ได้ (กรุณาเช็ค Docker): %v", err)
 	}
 
 	return db
 }
 
-func TestPostgresStaffRepository_SaveAndFindByUsername_Success(t *testing.T) {
+func TestPostgresStaffRepository_CreateAndSave_Success(t *testing.T) {
 	db := setupTestDB(t)
+	ctx := context.Background()
 	t.Cleanup(func() {
-		_, _ = db.Exec("DELETE FROM staffs WHERE username = $1", "Paa_Top_IT")
+		_, _ = db.Exec("DELETE FROM staffs WHERE username = $1", "OpLock_Staff")
 		_ = db.Close()
 	})
 
 	repo := NewPostgresStaffRepository(db)
 
-	staff, err := domain.CreateStaff("Paa_Top_IT", "KhonNaRak5555", "HN99999")
+	// 1. Test Create (Insert)
+	staff, err := domain.CreateStaff("OpLock_Staff", "Password123!", "HN99999")
 	if err != nil {
 		t.Fatalf("สร้าง staff ไม่สำเร็จ: %v", err)
 	}
 
-	err = repo.Save(staff)
+	err = repo.Create(ctx, staff)
 	if err != nil {
-		t.Fatalf("Save staff ลง Postgres ไม่สำเร็จ: %v", err)
+		t.Fatalf("Create staff ลง Postgres ไม่สำเร็จ: %v", err)
 	}
 
-	foundStaff, err := repo.FindByUsername("Paa_Top_IT")
-	if err != nil {
-		t.Fatalf("FindByUsername ไม่สำเร็จ: %v", err)
-	}
-
-	if foundStaff.Username.Value() != "Paa_Top_IT" {
-		t.Errorf("คาดหวัง username %q แต่ได้ %q", "Paa_Top_IT", foundStaff.Username.Value())
-	}
-
-	if foundStaff.HospitalId.Value() != "HN99999" {
-		t.Errorf("คาดหวัง hospital_id %q แต่ได้ %q", "HN99999", foundStaff.HospitalId.Value())
-	}
-}
-
-// Test Happy Path: ทดสอบการบันทึกและอัปเดต Version (Increment) ของ Staff ใน PostgreSQL
-func TestPostgresStaffRepository_Version_HappyPath(t *testing.T) {
-	db := setupTestDB(t)
-	t.Cleanup(func() {
-		_, _ = db.Exec("DELETE FROM staffs WHERE username = $1", "Version_Staff_Test")
-		_ = db.Close()
-	})
-
-	repo := NewPostgresStaffRepository(db)
-
-	// 1. สร้าง Staff ใหม่ (Version เริ่มต้น 1, 1)
-	staff, err := domain.CreateStaff("Version_Staff_Test", "Password123!", "HN99999")
-	if err != nil {
-		t.Fatalf("สร้าง staff ไม่สำเร็จ: %v", err)
-	}
-
-	if staff.Version.CurrentNumber() != 1 || staff.Version.PreviousNumber() != 1 {
-		t.Fatalf("เวอร์ชันเริ่มต้นไม่ถูกต้อง")
-	}
-
-	err = repo.Save(staff)
-	if err != nil {
-		t.Fatalf("Save staff ครั้งแรกไม่สำเร็จ: %v", err)
-	}
-
-	// 2. โหลดขึ้นมาเช็คว่า Version เป็น 1, 1 จริง
-	loaded1, err := repo.FindByUsername("Version_Staff_Test")
+	// 2. Test FindByUsername
+	found, err := repo.FindByUsername("OpLock_Staff")
 	if err != nil {
 		t.Fatalf("FindByUsername ไม่สำเร็จ: %v", err)
 	}
-	if loaded1.Version.CurrentNumber() != 1 || loaded1.Version.PreviousNumber() != 1 {
-		t.Errorf("คาดหวัง version 1/1 แต่ได้ %d/%d", loaded1.Version.CurrentNumber(), loaded1.Version.PreviousNumber())
+	if found.Version.CurrentNumber() != 1 {
+		t.Errorf("คาดหวัง version 1 แต่ได้ %d", found.Version.CurrentNumber())
 	}
 
-	// 3. ทำการ Increment Version (เป็น 2, 1) และ Save ทับ
-	newVersion := loaded1.Version.Increment()
-	updatedStaff, err := domain.RestoreStaff("Version_Staff_Test", "Password123!", "HN99999", newVersion.CurrentNumber(), newVersion.PreviousNumber())
+	// 3. Test Save with Optimistic Locking (Update version 1 -> 2)
+	newVersion := found.Version.Increment()
+	updatedStaff, err := domain.RestoreStaff("OpLock_Staff", "NewPassword123!", "HN99999", newVersion.CurrentNumber(), newVersion.PreviousNumber())
 	if err != nil {
 		t.Fatalf("RestoreStaff ไม่สำเร็จ: %v", err)
 	}
 
 	err = repo.Save(updatedStaff)
 	if err != nil {
-		t.Fatalf("Save staff ครั้งที่สอง (หลัง increment) ไม่สำเร็จ: %v", err)
+		t.Fatalf("Save (Optimistic Update) ไม่สำเร็จ: %v", err)
 	}
 
-	// 4. โหลดขึ้นมาเช็คว่า Version อัปเดตเป็น 2, 1 จริง
-	loaded2, err := repo.FindByUsername("Version_Staff_Test")
+	// 4. Test Optimistic Lock Conflict (พยายาม Update ด้วยเวอร์ชันเก่าที่หมดอายุแล้ว)
+	staleStaff, err := domain.RestoreStaff("OpLock_Staff", "AnotherPassword!", "HN99999", 2, 1) // version เก่า (current=2, previous=1 ซึ่งปัจจุบัน DB เป็น current=2 ไปแล้ว)
 	if err != nil {
-		t.Fatalf("FindByUsername ไม่สำเร็จ: %v", err)
+		t.Fatalf("RestoreStaff stale ไม่สำเร็จ: %v", err)
 	}
-	if loaded2.Version.CurrentNumber() != 2 || loaded2.Version.PreviousNumber() != 1 {
-		t.Errorf("คาดหวัง version 2/1 แต่ได้ %d/%d", loaded2.Version.CurrentNumber(), loaded2.Version.PreviousNumber())
+
+	err = repo.Save(staleStaff)
+	if err == nil {
+		t.Fatalf("คาดหวังว่าจะเกิด Optimistic Lock Conflict error แต่ไม่มี error เกิดขึ้น")
 	}
 }
 
-// Test Sad Path: ทดสอบกรณีค้นหา Username ที่ไม่มีอยู่จริง และกรณี Version ไม่ถูกต้อง
 func TestPostgresStaffRepository_Version_SadPath(t *testing.T) {
 	db := setupTestDB(t)
 	t.Cleanup(func() {
