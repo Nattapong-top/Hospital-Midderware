@@ -1,10 +1,127 @@
 package http_test
 
 import (
+	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"Hospital-Middleware/internal/application"
+	httpDelivery "Hospital-Middleware/internal/delivery/http"
 	"Hospital-Middleware/internal/domain"
+
+	"github.com/gin-gonic/gin"
 )
+
+type mockAdapter struct {
+	patient *domain.PatientDTO
+	err     error
+}
+
+func (m *mockAdapter) Search(criteria domain.SearchCriteria) (*domain.PatientDTO, error) {
+	return m.patient, m.err
+}
+
+type mockResolver struct {
+	adapter domain.ExternalAPIAdapter
+	err     error
+}
+
+func (m *mockResolver) Resolve(hospitalID string) (domain.ExternalAPIAdapter, error) {
+	return m.adapter, m.err
+}
+
+func TestPatientHandler_SearchPatient_Success(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	mockPat := &domain.PatientDTO{
+		FirstNameTH: "สมชาย",
+		NationalID:  "1100200300400",
+		PatientHN:   "HN-12345",
+	}
+	adapter := &mockAdapter{patient: mockPat}
+	resolver := &mockResolver{adapter: adapter}
+	searchUC := application.NewSearchPatient(resolver)
+	handler := httpDelivery.NewPatientHandler(searchUC)
+
+	r := gin.New()
+	r.GET("/patient/search", func(c *gin.Context) {
+		c.Set("hospital", "HN99999")
+		handler.SearchPatient(c)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/patient/search?national_id=1100200300400", nil)
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("คาดหวัง Status 200 แต่ได้ %d (Response: %s)", rec.Code, rec.Body.String())
+	}
+}
+
+func TestPatientHandler_SearchPatient_MissingHospitalContext(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	resolver := &mockResolver{}
+	searchUC := application.NewSearchPatient(resolver)
+	handler := httpDelivery.NewPatientHandler(searchUC)
+
+	r := gin.New()
+	r.GET("/patient/search", handler.SearchPatient)
+
+	req := httptest.NewRequest(http.MethodGet, "/patient/search?national_id=1100200300400", nil)
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("คาดหวัง Status 401 แต่ได้ %d", rec.Code)
+	}
+}
+
+func TestPatientHandler_SearchPatient_InvalidCriteria(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	resolver := &mockResolver{}
+	searchUC := application.NewSearchPatient(resolver)
+	handler := httpDelivery.NewPatientHandler(searchUC)
+
+	r := gin.New()
+	r.GET("/patient/search", func(c *gin.Context) {
+		c.Set("hospital", "HN99999")
+		handler.SearchPatient(c)
+	})
+
+	// ส่ง request แบบไม่มี query parameters ใดๆ (Criteria ว่าง)
+	req := httptest.NewRequest(http.MethodGet, "/patient/search", nil)
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("คาดหวัง Status 400 แต่ได้ %d", rec.Code)
+	}
+}
+
+func TestPatientHandler_SearchPatient_ResolverError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	resolver := &mockResolver{err: errors.New("unsupported hospital")}
+	searchUC := application.NewSearchPatient(resolver)
+	handler := httpDelivery.NewPatientHandler(searchUC)
+
+	r := gin.New()
+	r.GET("/patient/search", func(c *gin.Context) {
+		c.Set("hospital", "UNKNOWN")
+		handler.SearchPatient(c)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/patient/search?national_id=1100200300400", nil)
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("คาดหวัง Status 400 แต่ได้ %d", rec.Code)
+	}
+}
 
 func TestSearchCriteria_Validate_TableDriven(t *testing.T) {
 	tests := []struct {

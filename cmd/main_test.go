@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"Hospital-Middleware/internal/application"
@@ -15,28 +18,68 @@ import (
 )
 
 // --- Mock Staff Repository ในชั้น Memory สำหรับ Test ---
-type mockStaffRepo struct{}
+type mockStaffRepo struct {
+	staffs map[string]*domain.Staff
+}
 
 func (m *mockStaffRepo) Create(ctx context.Context, staff *domain.Staff) error {
-	//TODO implement me
+	if m.staffs == nil {
+		m.staffs = make(map[string]*domain.Staff)
+	}
+	if _, exists := m.staffs[staff.Username.Value()]; exists {
+		return errors.New("username นี้มีอยู่ในระบบแล้วครับ")
+	}
+	m.staffs[staff.Username.Value()] = staff
 	return nil
 }
 
 func (m *mockStaffRepo) ExistsByUsername(ctx context.Context, username string) (bool, error) {
-	//TODO implement me
-	return false, nil
+	if m.staffs == nil {
+		m.staffs = make(map[string]*domain.Staff)
+	}
+	_, exists := m.staffs[username]
+	return exists, nil
 }
 
 func (m *mockStaffRepo) FindByUsername(username string) (*domain.Staff, error) {
 	if username == "Paa_Top_IT" {
-		staff, _ := domain.CreateStaff("Paa_Top_IT", "$2a$10$abcdefghijklmnopqrstuu", "HN99999")
+		hashed, _ := infrastructure.NewBcryptHasher().Hash("Password123!")
+		staff, _ := domain.CreateStaff("Paa_Top_IT", hashed, "HN99999")
 		return staff, nil
 	}
-	return nil, nil
+	if m.staffs != nil {
+		if staff, exists := m.staffs[username]; exists {
+			return staff, nil
+		}
+	}
+	return nil, errors.New("ไม่พบข้อมูลพนักงานในระบบครับ")
 }
 
 func (m *mockStaffRepo) Save(staff *domain.Staff) error {
+	if m.staffs == nil {
+		m.staffs = make(map[string]*domain.Staff)
+	}
+	m.staffs[staff.Username.Value()] = staff
 	return nil
+}
+
+func TestGetEnv(t *testing.T) {
+	// 1. Test default value when env is not set
+	os.Unsetenv("TEST_ENV_VAR_XYZ")
+	val := getEnv("TEST_ENV_VAR_XYZ", "default_val")
+	if val != "default_val" {
+		t.Errorf("คาดหวัง %q แต่ได้ %q", "default_val", val)
+	}
+
+	// 2. Test value when env is set
+	_ = os.Setenv("TEST_ENV_VAR_XYZ", "custom_val")
+	t.Cleanup(func() {
+		_ = os.Unsetenv("TEST_ENV_VAR_XYZ")
+	})
+	valSet := getEnv("TEST_ENV_VAR_XYZ", "default_val")
+	if valSet != "custom_val" {
+		t.Errorf("คาดหวัง %q แต่ได้ %q", "custom_val", valSet)
+	}
 }
 
 func TestMainRoutes_Integration(t *testing.T) {
@@ -56,7 +99,7 @@ func TestMainRoutes_Integration(t *testing.T) {
 	defer mockExternalHospA.Close()
 
 	// 2. Setup Mock Dependencies
-	staffRepo := &mockStaffRepo{}
+	staffRepo := &mockStaffRepo{staffs: make(map[string]*domain.Staff)}
 	hasher := infrastructure.NewBcryptHasher()
 	tokenProvider := infrastructure.NewJWTTokenProvider("test-secret-key")
 
@@ -70,9 +113,71 @@ func TestMainRoutes_Integration(t *testing.T) {
 	// 3. Setup Router
 	router := setupRouter(authService, &staffService, searchPatientUseCase, tokenProvider)
 
+	// --- Test /staff/create (Success) ---
+	t.Run("POST /staff/create Success", func(t *testing.T) {
+		body := map[string]string{
+			"username": "new_staff",
+			"password": "Password123!",
+			"hospital": "HN99999",
+		}
+		jsonBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/staff/create", bytes.NewBuffer(jsonBytes))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+
+		router.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusCreated {
+			t.Errorf("คาดหวัง Status 201 แต่ได้ %d (Response: %s)", rec.Code, rec.Body.String())
+		}
+	})
+
+	// --- Test /staff/login (Success) ---
+	t.Run("POST /staff/login Success", func(t *testing.T) {
+		// Create staff first
+		hashed, _ := hasher.Hash("Password123!")
+		staff, _ := domain.CreateStaff("login_staff", hashed, "HN99999")
+		_ = staffRepo.Save(staff)
+
+		body := map[string]string{
+			"username": "login_staff",
+			"password": "Password123!",
+			"hospital": "HN99999",
+		}
+		jsonBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/staff/login", bytes.NewBuffer(jsonBytes))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+
+		router.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("คาดหวัง Status 200 แต่ได้ %d (Response: %s)", rec.Code, rec.Body.String())
+		}
+	})
+
+	// --- Test /staff/login (Unauthorized / Wrong Password) ---
+	t.Run("POST /staff/login Wrong Password -> 401", func(t *testing.T) {
+		body := map[string]string{
+			"username": "login_staff",
+			"password": "WrongPassword!",
+			"hospital": "HN99999",
+		}
+		jsonBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/staff/login", bytes.NewBuffer(jsonBytes))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+
+		router.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("คาดหวัง Status 401 แต่ได้ %d (Response: %s)", rec.Code, rec.Body.String())
+		}
+	})
+
 	// --- Scenario 1: Access Protected Route Without Auth Header -> Should Fail 401 ---
-	t.Run("GET /api/v1/patient/search without token -> 401 Unauthorized", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/patient/search?national_id=1100200300400", nil)
+	t.Run("GET /patient/search without token -> 401 Unauthorized", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/patient/search?national_id=1100200300400", nil)
 		rec := httptest.NewRecorder()
 
 		router.ServeHTTP(rec, req)
@@ -83,26 +188,6 @@ func TestMainRoutes_Integration(t *testing.T) {
 	})
 
 	// --- Scenario 2: Access Protected Route With Valid JWT Token -> Should Pass 200 ---
-	t.Run("GET /api/v1/patient/search with valid token -> 200 OK", func(t *testing.T) {
-		// สร้าง Token จำลอง
-		staff, _ := domain.CreateStaff("Paa_Top_IT", "HashedPass123!", "HN99999")
-		validToken, err := tokenProvider.GenerateToken(staff)
-		if err != nil {
-			t.Fatalf("สร้าง token ล้มเหลว: %v", err)
-		}
-
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/patient/search?national_id=1100200300400", nil)
-		req.Header.Set("Authorization", "Bearer "+validToken)
-		rec := httptest.NewRecorder()
-
-		router.ServeHTTP(rec, req)
-
-		if rec.Code != http.StatusOK {
-			t.Errorf("คาดหวัง Status %d แต่ได้ %d (Response: %s)", http.StatusOK, rec.Code, rec.Body.String())
-		}
-	})
-
-	// --- Scenario 3: Access Direct Protected Route (/patient/search) With Valid JWT Token -> Should Pass 200 ---
 	t.Run("GET /patient/search with valid token -> 200 OK", func(t *testing.T) {
 		staff, _ := domain.CreateStaff("Paa_Top_IT", "HashedPass123!", "HN99999")
 		validToken, err := tokenProvider.GenerateToken(staff)
