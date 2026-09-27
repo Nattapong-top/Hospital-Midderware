@@ -9,54 +9,81 @@ import (
 
 	"Hospital-Midderware/internal/application"
 	httpDelivery "Hospital-Midderware/internal/delivery/http"
+	"Hospital-Midderware/internal/delivery/http/middleware"
+	"Hospital-Midderware/internal/domain"
 	"Hospital-Midderware/internal/infrastructure"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 )
 
+// setupRouter แยกฟังก์ชันประกอบร่าง Dependencies และ Route ทั้งหมดออกมาเพื่อความง่ายในการเขียน Unit Test
+func setupRouter(
+	authService *application.AuthService,
+	staffService *application.StaffService,
+	searchPatientUseCase *application.SearchPatient,
+	tokenProvider domain.TokenProvider,
+) *gin.Engine {
+	r := gin.Default()
+
+	staffHandler := httpDelivery.NewStaffHandler(authService, staffService)
+	patientHandler := httpDelivery.NewPatientHandler(searchPatientUseCase)
+
+	// Auth Routes (Public)
+	r.POST("/staff/login", staffHandler.Login)
+
+	// API v1 Grouping
+	v1 := r.Group("/api/v1")
+	{
+		// 🟢 Public Endpoints
+		v1.POST("/auth/login", staffHandler.Login)
+		v1.POST("/staff/create", staffHandler.CreateStaff)
+
+		// 🔴 Protected Endpoints (ต้องผ่าน AuthMiddleware)
+		protected := v1.Group("")
+		protected.Use(middleware.AuthMiddleware(tokenProvider))
+		{
+			protected.GET("/patient/search", patientHandler.SearchPatient)
+		}
+	}
+
+	return r
+}
+
 func main() {
 	// 1. Initialize Database
 	db := initDB()
 	defer db.Close()
 
-	// 2. Setup Dependencies (Infrastructure -> Application -> Delivery)
+	// 2. Setup Dependencies
 	jwtSecret := getEnv("JWT_SECRET", "super-secret-key-5678")
 
 	staffRepo := infrastructure.NewPostgresStaffRepository(db)
 	hasher := infrastructure.NewBcryptHasher()
 	tokenProvider := infrastructure.NewJWTTokenProvider(jwtSecret)
 
+	hospitalABaseURL := getEnv("HOSPITAL_A_BASE_URL", "https://hospital-a.api.co.th")
+	hospitalAAdapter := infrastructure.NewHospitalAAPIAdapter(hospitalABaseURL)
+	hospitalResolver := infrastructure.NewHospitalResolver(hospitalAAdapter)
+
 	authService := application.NewAuthService(staffRepo, hasher, tokenProvider)
 	staffService := application.NewStaffService(staffRepo, hasher)
-	staffHandler := httpDelivery.NewStaffHandler(authService, &staffService)
+	searchPatientUseCase := application.NewSearchPatient(hospitalResolver)
 
 	log.Println("ประกอบร่าง Dependencies เรียบร้อย")
 
 	// 3. Register Routes ด้วย Gin Router
-	r := gin.Default()
-
-	// Auth Routes
-	r.POST("/staff/login", staffHandler.Login)
-
-	// API v1 Grouping
-	v1 := r.Group("/api/v1")
-	{
-		v1.POST("/auth/login", staffHandler.Login)
-		v1.POST("/staff/create", staffHandler.CreateStaff) // 🟢 ผูก CreateStaff Route
-	}
+	r := setupRouter(authService, &staffService, searchPatientUseCase, tokenProvider)
 
 	// 4. Start HTTP Server
 	port := getEnv("SERVER_PORT", ":8080")
 	log.Printf("HTTP Server (Gin) กำลังทำงานที่พอร์ต %s ...\n", port)
 
-	// Gin ใช้ r.Run(port) ในการเริ่มเซิร์ฟเวอร์
 	if err := r.Run(port); err != nil {
 		log.Fatalf("Server ทำงานผิดพลาด: %v", err)
 	}
 }
 
-// initDB ทำหน้าที่เชื่อมต่อและตั้งค่า Connection Pool ให้ PostgreSQL
 func initDB() *sql.DB {
 	dbHost := getEnv("DB_HOST", "127.0.0.1")
 	dbPort := getEnv("DB_PORT", "5432")
@@ -72,10 +99,9 @@ func initDB() *sql.DB {
 		log.Fatalf("ไม่สามารถเปิด Database Connection ได้: %v", err)
 	}
 
-	// กำหนด Connection Pool Configurations สำหรับ Production
-	db.SetMaxOpenConns(25)                 // จำนวน Connection สูงสุดที่เปิดพร้อมกันได้
-	db.SetMaxIdleConns(25)                 // จำนวน Connection สำรองที่รอทำงาน
-	db.SetConnMaxLifetime(5 * time.Minute) // อายุสูงสุดของ Connection ก่อนจะถูกปิดและสร้างใหม่
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxLifetime(5 * time.Minute)
 
 	if err := db.Ping(); err != nil {
 		log.Fatalf("ไม่สามารถเชื่อมต่อ Database ได้ (Ping failed): %v", err)
@@ -85,7 +111,6 @@ func initDB() *sql.DB {
 	return db
 }
 
-// getEnv Helper ฟังก์ชันอ่านค่าจาก Environment Variables ถ้าไม่มีให้ใช้ค่า default
 func getEnv(key, defaultValue string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
