@@ -24,6 +24,9 @@ func setupRouter(
 	tokenProvider domain.TokenProvider,
 ) *gin.Engine {
 	r := gin.Default()
+	if err := r.SetTrustedProxies(nil); err != nil {
+		panic(err)
+	}
 
 	staffHandler := httpDelivery.NewStaffHandler(authService, staffService)
 	patientHandler := httpDelivery.NewPatientHandler(searchPatientUseCase)
