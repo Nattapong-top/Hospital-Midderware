@@ -21,7 +21,7 @@ func TestHospitalResolver_Resolve_Success(t *testing.T) {
 	resolver := infrastructure.NewHospitalResolver(adapterA, adapterB)
 
 	t.Run("Resolve HN12345 to Hospital A", func(t *testing.T) {
-		resolved, err := resolver.Resolve("HN12345")
+		resolved, err := resolver.Resolve(domain.HospitalIDBangkok)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -31,7 +31,7 @@ func TestHospitalResolver_Resolve_Success(t *testing.T) {
 	})
 
 	t.Run("Resolve HOSP_A to Hospital A", func(t *testing.T) {
-		resolved, err := resolver.Resolve("HOSP_A")
+		resolved, err := resolver.Resolve(domain.HospitalHospA)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -41,7 +41,7 @@ func TestHospitalResolver_Resolve_Success(t *testing.T) {
 	})
 
 	t.Run("Resolve HN99999 to Hospital B", func(t *testing.T) {
-		resolved, err := resolver.Resolve("HN99999")
+		resolved, err := resolver.Resolve(domain.HospitalIDAgnos)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -51,7 +51,7 @@ func TestHospitalResolver_Resolve_Success(t *testing.T) {
 	})
 
 	t.Run("Resolve HOSP_B to Hospital B", func(t *testing.T) {
-		resolved, err := resolver.Resolve("HOSP_B")
+		resolved, err := resolver.Resolve(domain.HospitalHospB)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
