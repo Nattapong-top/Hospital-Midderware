@@ -11,7 +11,9 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./migrations/000001_create_hospital_and_staff_tables.up.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./migrations/000001_create_hospital_and_staff_tables.up.sql:/docker-entrypoint-initdb.d/01_init.sql
+      - ./migrations/000002_create_patients_table.up.sql:/docker-entrypoint-initdb.d/02_patients.sql
+      - ./migrations/000003_add_version_to_staffs.up.sql:/docker-entrypoint-initdb.d/03_version.sql
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres -d hospital_middleware" ] # 🟢 แก้จาก pg_ready เป็น pg_isready
       interval: 5s
