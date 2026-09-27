@@ -54,8 +54,10 @@ func main() {
 	tokenProvider := infrastructure.NewJWTTokenProvider(jwtSecret)
 
 	hospitalABaseURL := getEnv("HOSPITAL_A_BASE_URL", "https://hospital-a.api.co.th")
+	hospitalBBaseURL := getEnv("HOSPITAL_B_BASE_URL", "https://hospital-b.api.co.th")
 	hospitalAAdapter := infrastructure.NewHospitalAAPIAdapter(hospitalABaseURL)
-	hospitalResolver := infrastructure.NewHospitalResolver(hospitalAAdapter)
+	hospitalBAdapter := infrastructure.NewHospitalAAPIAdapter(hospitalBBaseURL)
+	hospitalResolver := infrastructure.NewHospitalResolver(hospitalAAdapter, hospitalBAdapter)
 
 	authService := application.NewAuthService(staffRepo, hasher, tokenProvider)
 	staffService := application.NewStaffService(staffRepo, hasher)
