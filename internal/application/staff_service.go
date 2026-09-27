@@ -26,6 +26,11 @@ func NewStaffService(staffRepo domain.StaffRepository, hasher domain.PasswordHas
 
 func (s *StaffService) CreateStaff(ctx context.Context, req CreateStaffRequest) error {
 
+	_, err := domain.NewPassword(req.Password)
+	if err != nil {
+		return err
+	}
+
 	exists, err := s.staffRepo.ExistsByUsername(ctx, req.Username)
 	if err != nil {
 		return err
