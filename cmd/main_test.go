@@ -101,4 +101,23 @@ func TestMainRoutes_Integration(t *testing.T) {
 			t.Errorf("คาดหวัง Status %d แต่ได้ %d (Response: %s)", http.StatusOK, rec.Code, rec.Body.String())
 		}
 	})
+
+	// --- Scenario 3: Access Direct Protected Route (/patient/search) With Valid JWT Token -> Should Pass 200 ---
+	t.Run("GET /patient/search with valid token -> 200 OK", func(t *testing.T) {
+		staff, _ := domain.CreateStaff("Paa_Top_IT", "HashedPass123!", "HN99999")
+		validToken, err := tokenProvider.GenerateToken(staff)
+		if err != nil {
+			t.Fatalf("สร้าง token ล้มเหลว: %v", err)
+		}
+
+		req := httptest.NewRequest(http.MethodGet, "/patient/search?national_id=1100200300400", nil)
+		req.Header.Set("Authorization", "Bearer "+validToken)
+		rec := httptest.NewRecorder()
+
+		router.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("คาดหวัง Status %d แต่ได้ %d (Response: %s)", http.StatusOK, rec.Code, rec.Body.String())
+		}
+	})
 }

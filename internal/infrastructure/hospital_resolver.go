@@ -18,7 +18,7 @@ func NewHospitalResolver(hospitalAAdapter domain.ExternalAPIAdapter) *HospitalRe
 
 func (r *HospitalResolver) Resolve(hospitalID string) (domain.ExternalAPIAdapter, error) {
 	switch hospitalID {
-	case "HOSP_A", "HN99999": // รองรับ Hospital ID ของ รพ. A
+	case "HOSP_A", "HN99999", "HN12345": // รองรับ Hospital ID ของ รพ. A
 		return r.hospitalAAdapter, nil
 	default:
 		// ถ้ามี Hospital B เพิ่มในอนาคต สามารถมาสวิตช์เพิ่มตรงนี้ได้ง่ายๆ
