@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"Hospital-Midderware/internal/domain"
+	"Hospital-Middleware/internal/domain"
 )
 
 type HospitalAAPIAdapter struct {

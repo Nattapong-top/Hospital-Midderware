@@ -3,8 +3,8 @@ package http
 import (
 	"net/http"
 
-	"Hospital-Midderware/internal/application"
-	"Hospital-Midderware/internal/domain"
+	"Hospital-Middleware/internal/application"
+	"Hospital-Middleware/internal/domain"
 
 	"github.com/gin-gonic/gin"
 )

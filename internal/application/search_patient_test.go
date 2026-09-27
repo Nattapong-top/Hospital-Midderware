@@ -3,8 +3,8 @@ package application_test
 import (
 	"testing"
 
-	"Hospital-Midderware/internal/application"
-	"Hospital-Midderware/internal/domain"
+	"Hospital-Middleware/internal/application"
+	"Hospital-Middleware/internal/domain"
 )
 
 // Mock Adapter สำหรับ Unit Test

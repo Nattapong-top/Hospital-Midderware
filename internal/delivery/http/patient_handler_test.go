@@ -3,7 +3,7 @@ package http_test
 import (
 	"testing"
 
-	"Hospital-Midderware/internal/domain"
+	"Hospital-Middleware/internal/domain"
 )
 
 func TestSearchCriteria_Validate_TableDriven(t *testing.T) {

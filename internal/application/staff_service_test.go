@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"Hospital-Midderware/internal/application"
-	"Hospital-Midderware/internal/domain"
+	"Hospital-Middleware/internal/application"
+	"Hospital-Middleware/internal/domain"
 )
 
 // Mock Repository สำหรับ Staff Management

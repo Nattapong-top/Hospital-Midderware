@@ -1,7 +1,7 @@
 package application
 
 import (
-	"Hospital-Midderware/internal/domain"
+	"Hospital-Middleware/internal/domain"
 	"errors"
 )
 

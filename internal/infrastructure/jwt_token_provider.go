@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"Hospital-Midderware/internal/domain"
+	"Hospital-Middleware/internal/domain"
 
 	"github.com/golang-jwt/jwt/v5"
 )

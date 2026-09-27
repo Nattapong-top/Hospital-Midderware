@@ -1,7 +1,7 @@
 package infrastructure
 
 import (
-	"Hospital-Midderware/internal/domain"
+	"Hospital-Middleware/internal/domain"
 	"testing"
 )
 

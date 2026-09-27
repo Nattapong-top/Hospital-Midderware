@@ -1,7 +1,7 @@
 package http
 
 import (
-	"Hospital-Midderware/internal/application"
+	"Hospital-Middleware/internal/application"
 	"encoding/json"
 	"net/http"
 

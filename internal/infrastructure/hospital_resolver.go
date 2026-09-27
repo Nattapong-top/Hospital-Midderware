@@ -3,7 +3,7 @@ package infrastructure
 import (
 	"errors"
 
-	"Hospital-Midderware/internal/domain"
+	"Hospital-Middleware/internal/domain"
 )
 
 type HospitalResolver struct {

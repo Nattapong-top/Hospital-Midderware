@@ -7,11 +7,11 @@ import (
 	"os"
 	"time"
 
-	"Hospital-Midderware/internal/application"
-	httpDelivery "Hospital-Midderware/internal/delivery/http"
-	"Hospital-Midderware/internal/delivery/http/middleware"
-	"Hospital-Midderware/internal/domain"
-	"Hospital-Midderware/internal/infrastructure"
+	"Hospital-Middleware/internal/application"
+	httpDelivery "Hospital-Middleware/internal/delivery/http"
+	"Hospital-Middleware/internal/delivery/http/middleware"
+	"Hospital-Middleware/internal/domain"
+	"Hospital-Middleware/internal/infrastructure"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
