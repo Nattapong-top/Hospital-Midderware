@@ -5,6 +5,14 @@ import (
 	"strings"
 )
 
+const (
+	HospitalIDBangkok = "HN12345"
+	HospitalIDAgnos   = "HN99999"
+	HospitalHospA     = "HOSP_A"
+	HospitalHospB     = "HOSP_B"
+	HospitalHospC     = "HOSP_C"
+)
+
 type HospitalId struct {
 	value string
 }

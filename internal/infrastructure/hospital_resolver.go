@@ -24,9 +24,9 @@ func NewHospitalResolver(hospitalAAdapter domain.ExternalAPIAdapter, hospitalBAd
 
 func (r *HospitalResolver) Resolve(hospitalID string) (domain.ExternalAPIAdapter, error) {
 	switch hospitalID {
-	case "HOSP_A", "HN12345": // โรงพยาบาล A (Bangkok General Hospital)
+	case domain.HospitalHospA, domain.HospitalIDBangkok: // โรงพยาบาล A (Bangkok General Hospital)
 		return r.hospitalAAdapter, nil
-	case "HOSP_B", "HN99999": // โรงพยาบาล B (Agnos Central Hospital)
+	case domain.HospitalHospB, domain.HospitalIDAgnos: // โรงพยาบาล B (Agnos Central Hospital)
 		return r.hospitalBAdapter, nil
 	default:
 		return nil, domain.ErrHospitalNotFound
