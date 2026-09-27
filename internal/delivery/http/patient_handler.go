@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"strings"
 
 	"Hospital-Middleware/internal/application"
 	"Hospital-Middleware/internal/domain"
@@ -27,7 +28,7 @@ func (h *PatientHandler) SearchPatient(c *gin.Context) {
 		return
 	}
 
-	// 2. รับค่า Query Parameters ทั้ง 8 Fields ตามโจทย์ Agnos
+	// 2. รับค่า Query Parameters ทั้ง 8 Fields
 	criteria := domain.SearchCriteria{
 		NationalID:  c.Query("national_id"),
 		PassportID:  c.Query("passport_id"),
@@ -42,7 +43,11 @@ func (h *PatientHandler) SearchPatient(c *gin.Context) {
 	// 3. เรียก Use Case ให้ทำงาน
 	result, err := h.searchPatientUseCase.Execute(hospitalID, criteria)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if strings.Contains(err.Error(), "invalid criteria") || strings.Contains(err.Error(), "criterion") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 

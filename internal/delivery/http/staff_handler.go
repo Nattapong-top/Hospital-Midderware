@@ -4,6 +4,7 @@ import (
 	"Hospital-Middleware/internal/application"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -72,7 +73,10 @@ func (h *StaffHandler) CreateStaff(c *gin.Context) {
 	// 2. เรียก Business Logic ใน Application Layer
 	err := h.staffService.CreateStaff(c.Request.Context(), application.CreateStaffRequest(req))
 	if err != nil {
-		// สามารถเช็ก Error Type คืนค่า 400 Bad Request หรือ 409 Conflict ตาม Logic ได้
+		if strings.Contains(err.Error(), "มีอยู่ในระบบแล้ว") || strings.Contains(err.Error(), "already exists") {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
