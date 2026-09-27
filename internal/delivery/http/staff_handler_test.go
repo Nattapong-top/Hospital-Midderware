@@ -10,17 +10,14 @@ import (
 	"Hospital-Middleware/internal/application"
 	"Hospital-Middleware/internal/domain"
 	"Hospital-Middleware/internal/infrastructure"
+	"Hospital-Middleware/internal/testutil"
 
 	"github.com/gin-gonic/gin"
 )
 
 // Helper ฟังก์ชันสำหรับสร้าง *gin.Context ในการทำ Unit Test
 func setupGinTestContext(req *http.Request) (*gin.Context, *httptest.ResponseRecorder) {
-	gin.SetMode(gin.TestMode)
-	rec := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(rec)
-	c.Request = req
-	return c, rec
+	return testutil.SetupGinTestContext(req)
 }
 
 func TestStaffHandler_Login_Success(t *testing.T) {
