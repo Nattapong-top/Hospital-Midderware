@@ -29,28 +29,13 @@ func setupRouter(
 	staffHandler := httpDelivery.NewStaffHandler(authService, staffService)
 	patientHandler := httpDelivery.NewPatientHandler(searchPatientUseCase)
 
-	// Direct Routes (ตามโจทย์ PDF)
 	r.POST("/staff/login", staffHandler.Login)
 	r.POST("/staff/create", staffHandler.CreateStaff)
 
-	protectedDirect := r.Group("")
-	protectedDirect.Use(middleware.AuthMiddleware(tokenProvider))
+	protected := r.Group("")
+	protected.Use(middleware.AuthMiddleware(tokenProvider))
 	{
-		protectedDirect.GET("/patient/search", patientHandler.SearchPatient)
-	}
-
-	// API v1 Grouping (Aliases)
-	v1 := r.Group("/api/v1")
-	{
-		v1.POST("/auth/login", staffHandler.Login)
-		v1.POST("/staff/login", staffHandler.Login)
-		v1.POST("/staff/create", staffHandler.CreateStaff)
-
-		protectedV1 := v1.Group("")
-		protectedV1.Use(middleware.AuthMiddleware(tokenProvider))
-		{
-			protectedV1.GET("/patient/search", patientHandler.SearchPatient)
-		}
+		protected.GET("/patient/search", patientHandler.SearchPatient)
 	}
 
 	return r
