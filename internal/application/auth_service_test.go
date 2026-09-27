@@ -44,8 +44,8 @@ func TestAuthService_Login_UserNotFound_ShouldFail(t *testing.T) {
 		t.Fatal("คาดว่าจะเกิด error เมื่อไม่พบผู้ใช้งาน แต่กลับผ่าน")
 	}
 
-	if err.Error() != "invalid credentials" {
-		t.Errorf("คาดหวัง error %q แต่ได้ %q", "invalid credentials", err.Error())
+	if err.Error() != "ข้อมูลการเข้าสู่ระบบไม่ถูกต้อง" {
+		t.Errorf("คาดหวัง error %q แต่ได้ %q", "ข้อมูลการเข้าสู่ระบบไม่ถูกต้อง", err.Error())
 	}
 }
 
@@ -69,8 +69,8 @@ func TestAuthService_Login_WrongPassword_ShouldFail(t *testing.T) {
 		t.Fatal("คาดว่าจะเกิด error เมื่อพิมพ์รหัสผ่านผิด แต่กลับผ่าน")
 	}
 
-	if err.Error() != "invalid credentials" {
-		t.Errorf("คาดหวัง error %q แต่ได้ %q", "invalid credentials", err.Error())
+	if err.Error() != "ข้อมูลการเข้าสู่ระบบไม่ถูกต้อง" {
+		t.Errorf("คาดหวัง error %q แต่ได้ %q", "ข้อมูลการเข้าสู่ระบบไม่ถูกต้อง", err.Error())
 	}
 }
 

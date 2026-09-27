@@ -1,8 +1,8 @@
 package http
 
 import (
+	"errors"
 	"net/http"
-	"strings"
 
 	"Hospital-Middleware/internal/application"
 	"Hospital-Middleware/internal/domain"
@@ -43,7 +43,7 @@ func (h *PatientHandler) SearchPatient(c *gin.Context) {
 	// 3. เรียก Use Case ให้ทำงาน
 	result, err := h.searchPatientUseCase.Execute(hospitalID, criteria)
 	if err != nil {
-		if strings.Contains(err.Error(), "invalid criteria") || strings.Contains(err.Error(), "criterion") {
+		if errors.Is(err, domain.ErrInvalidCriteria) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}

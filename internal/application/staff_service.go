@@ -3,7 +3,6 @@ package application
 import (
 	"Hospital-Middleware/internal/domain"
 	"context"
-	"errors"
 )
 
 type CreateStaffRequest struct {
@@ -36,7 +35,7 @@ func (s *StaffService) CreateStaff(ctx context.Context, req CreateStaffRequest) 
 		return err
 	}
 	if exists {
-		return errors.New("username นีัมีอยู่ในระบบแล้วครับ")
+		return domain.ErrUserAlreadyExists
 	}
 
 	hashedPassword, err := s.hasher.Hash(req.Password)

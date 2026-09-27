@@ -2,7 +2,6 @@ package application
 
 import (
 	"Hospital-Middleware/internal/domain"
-	"errors"
 )
 
 type AuthService struct {
@@ -27,16 +26,16 @@ func NewAuthService(
 func (a *AuthService) Login(username, password, hospitalId string) (string, error) {
 	staff, err := a.staffRepo.FindByUsername(username)
 	if err != nil {
-		return "", errors.New("invalid credentials")
+		return "", domain.ErrInvalidCredentials
 	}
 
 	if staff.HospitalId.Value() != hospitalId {
-		return "", errors.New("invalid credentials")
+		return "", domain.ErrInvalidCredentials
 	}
 
 	isMatched := a.hasher.Compare(staff.Password.Value(), password)
 	if !isMatched {
-		return "", errors.New("invalid credentials")
+		return "", domain.ErrInvalidCredentials
 	}
 
 	token, err := a.tokenProvider.GenerateToken(staff)

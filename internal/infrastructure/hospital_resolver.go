@@ -1,8 +1,6 @@
 package infrastructure
 
 import (
-	"errors"
-
 	"Hospital-Middleware/internal/domain"
 )
 
@@ -31,6 +29,6 @@ func (r *HospitalResolver) Resolve(hospitalID string) (domain.ExternalAPIAdapter
 	case "HOSP_B", "HN99999": // โรงพยาบาล B (Agnos Central Hospital)
 		return r.hospitalBAdapter, nil
 	default:
-		return nil, errors.New("ไม่พบรหัสโรงพยาบาลนี้ในระบบ หรือยังไม่รองรับครับ")
+		return nil, domain.ErrHospitalNotFound
 	}
 }
