@@ -2,12 +2,11 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"Hospital-Middleware/internal/application"
+	"Hospital-Middleware/internal/config"
 	httpDelivery "Hospital-Middleware/internal/delivery/http"
 	"Hospital-Middleware/internal/delivery/http/middleware"
 	"Hospital-Middleware/internal/domain"
@@ -42,21 +41,19 @@ func setupRouter(
 }
 
 func main() {
+	cfg := config.Load()
+
 	// 1. Initialize Database
-	db := initDB()
+	db := initDB(cfg)
 	defer db.Close()
 
 	// 2. Setup Dependencies
-	jwtSecret := getEnv("JWT_SECRET", "super-secret-key-5678")
-
 	staffRepo := infrastructure.NewPostgresStaffRepository(db)
 	hasher := infrastructure.NewBcryptHasher()
-	tokenProvider := infrastructure.NewJWTTokenProvider(jwtSecret)
+	tokenProvider := infrastructure.NewJWTTokenProvider(cfg.JWTSecret)
 
-	hospitalABaseURL := getEnv("HOSPITAL_A_BASE_URL", "https://hospital-a.api.co.th")
-	hospitalBBaseURL := getEnv("HOSPITAL_B_BASE_URL", "https://hospital-b.api.co.th")
-	hospitalAAdapter := infrastructure.NewHospitalAAPIAdapter(hospitalABaseURL)
-	hospitalBAdapter := infrastructure.NewHospitalAAPIAdapter(hospitalBBaseURL)
+	hospitalAAdapter := infrastructure.NewHospitalAAPIAdapter(cfg.HospitalABaseURL)
+	hospitalBAdapter := infrastructure.NewHospitalAAPIAdapter(cfg.HospitalBBaseURL)
 	hospitalResolver := infrastructure.NewHospitalResolver(hospitalAAdapter, hospitalBAdapter)
 
 	authService := application.NewAuthService(staffRepo, hasher, tokenProvider)
@@ -69,25 +66,15 @@ func main() {
 	r := setupRouter(authService, &staffService, searchPatientUseCase, tokenProvider)
 
 	// 4. Start HTTP Server
-	port := getEnv("SERVER_PORT", ":8080")
-	log.Printf("HTTP Server (Gin) กำลังทำงานที่พอร์ต %s ...\n", port)
+	log.Printf("HTTP Server (Gin) กำลังทำงานที่พอร์ต %s ...\n", cfg.ServerPort)
 
-	if err := r.Run(port); err != nil {
+	if err := r.Run(cfg.ServerPort); err != nil {
 		log.Fatalf("Server ทำงานผิดพลาด: %v", err)
 	}
 }
 
-func initDB() *sql.DB {
-	dbHost := getEnv("DB_HOST", "127.0.0.1")
-	dbPort := getEnv("DB_PORT", "5432")
-	dbUser := getEnv("DB_USER", "postgres")
-	dbPassword := getEnv("DB_PASSWORD", "KhonNaRak5555")
-	dbName := getEnv("DB_NAME", "hospital_middleware")
-
-	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		dbHost, dbPort, dbUser, dbPassword, dbName)
-
-	db, err := sql.Open("postgres", connStr)
+func initDB(cfg *config.Config) *sql.DB {
+	db, err := sql.Open("postgres", cfg.DSN())
 	if err != nil {
 		log.Fatalf("ไม่สามารถเปิด Database Connection ได้: %v", err)
 	}
@@ -102,11 +89,4 @@ func initDB() *sql.DB {
 
 	log.Println("เชื่อมต่อ Database PostgreSQL สำเร็จเรียบร้อย")
 	return db
-}
-
-func getEnv(key, defaultValue string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return value
-	}
-	return defaultValue
 }
