@@ -27,11 +27,16 @@ func (h *PatientHandler) SearchPatient(c *gin.Context) {
 		return
 	}
 
-	// 2. รับค่า Query Parameters จาก URL (เช่น /api/v1/patient/search?national_id=1100200300400)
+	// 2. รับค่า Query Parameters ทั้ง 8 Fields ตามโจทย์ Agnos
 	criteria := domain.SearchCriteria{
-		NationalID: c.Query("national_id"),
-		PassportID: c.Query("passport_id"),
-		PatientHN:  c.Query("patient_hn"),
+		NationalID:  c.Query("national_id"),
+		PassportID:  c.Query("passport_id"),
+		FirstName:   c.Query("first_name"),
+		MiddleName:  c.Query("middle_name"),
+		LastName:    c.Query("last_name"),
+		DateOfBirth: c.Query("date_of_birth"),
+		PhoneNumber: c.Query("phone_number"),
+		Email:       c.Query("email"),
 	}
 
 	// 3. เรียก Use Case ให้ทำงาน

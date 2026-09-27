@@ -2,16 +2,27 @@ package domain
 
 import "errors"
 
-// SearchCriteria รับเงื่อนไขการค้นหาผู้ป่วย
 type SearchCriteria struct {
-	NationalID string
-	PassportID string
-	PatientHN  string
+	NationalID  string
+	PassportID  string
+	FirstName   string
+	MiddleName  string
+	LastName    string
+	DateOfBirth string
+	PhoneNumber string
+	Email       string
 }
 
 // Validate ตรวจสอบว่าต้องมีเงื่อนไขค้นหาอย่างน้อย 1 รายการ
 func (s *SearchCriteria) Validate() error {
-	if s.NationalID == "" && s.PassportID == "" && s.PatientHN == "" {
+	if s.NationalID == "" &&
+		s.PassportID == "" &&
+		s.FirstName == "" &&
+		s.MiddleName == "" &&
+		s.LastName == "" &&
+		s.DateOfBirth == "" &&
+		s.PhoneNumber == "" &&
+		s.Email == "" {
 		return errors.New("at least one search criterion must be provided")
 	}
 	return nil
