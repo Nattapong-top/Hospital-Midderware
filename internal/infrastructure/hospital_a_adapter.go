@@ -2,10 +2,11 @@ package infrastructure
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"Hospital-Middleware/internal/domain"
@@ -29,24 +30,46 @@ func NewHospitalAAPIAdapter(baseURL string) *HospitalAAPIAdapter {
 }
 
 func (a *HospitalAAPIAdapter) Search(criteria domain.SearchCriteria) (*domain.PatientDTO, error) {
+	if err := criteria.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid search criteria: %w", err)
+	}
+
 	targetID := criteria.NationalID
 	if targetID == "" {
 		targetID = criteria.PassportID
 	}
 
-	if targetID == "" {
-		return nil, errors.New("การค้นหาผู้ป่วยของโรงพยาบาล A จำเป็นต้องระบุเลขประจำตัวประชาชน (national_id) หรือหนังสือเดินทาง (passport_id) ครับ")
+	targetURL := strings.TrimRight(a.baseURL, "/") + "/patient/search"
+	if targetID != "" {
+		targetURL += "/" + url.PathEscape(targetID)
 	}
 
-	// 2. สร้าง Request URL ตาม Spec /patient/search/{id}
-	url := fmt.Sprintf("%s/patient/search/%s", a.baseURL, targetID)
-
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequest(http.MethodGet, targetURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("ไม่สามารถสร้าง HTTP request ได้ครับ: %w", err)
 	}
 
-	// 3. ยิง HTTP Request
+	query := req.URL.Query()
+	if criteria.FirstName != "" {
+		query.Set("first_name", criteria.FirstName)
+	}
+	if criteria.MiddleName != "" {
+		query.Set("middle_name", criteria.MiddleName)
+	}
+	if criteria.LastName != "" {
+		query.Set("last_name", criteria.LastName)
+	}
+	if criteria.DateOfBirth != "" {
+		query.Set("date_of_birth", criteria.DateOfBirth)
+	}
+	if criteria.PhoneNumber != "" {
+		query.Set("phone_number", criteria.PhoneNumber)
+	}
+	if criteria.Email != "" {
+		query.Set("email", criteria.Email)
+	}
+	req.URL.RawQuery = query.Encode()
+
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("การเชื่อมต่อ external API ล้มเหลว: %w", err)
