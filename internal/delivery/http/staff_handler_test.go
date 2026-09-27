@@ -185,7 +185,7 @@ func TestStaffHandler_CreateStaff_DuplicateUsername_ShouldFail(t *testing.T) {
 	c, rec := setupGinTestContext(req)
 	handler.CreateStaff(c)
 
-	if rec.Code != http.StatusBadRequest && rec.Code != http.StatusConflict {
-		t.Errorf("คาดหวัง Status Code 400 หรือ 409 แต่ได้ %d", rec.Code)
+	if rec.Code != http.StatusConflict {
+		t.Errorf("คาดหวัง Status Code %d แต่ได้ %d", http.StatusConflict, rec.Code)
 	}
 }

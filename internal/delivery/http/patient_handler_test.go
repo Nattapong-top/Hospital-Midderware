@@ -118,8 +118,8 @@ func TestPatientHandler_SearchPatient_ResolverError(t *testing.T) {
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("คาดหวัง Status 400 แต่ได้ %d", rec.Code)
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("คาดหวัง Status 500 แต่ได้ %d", rec.Code)
 	}
 }
 
