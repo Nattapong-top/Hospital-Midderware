@@ -21,7 +21,6 @@ func (r *HospitalResolver) Resolve(hospitalID string) (domain.ExternalAPIAdapter
 	case "HOSP_A", "HN99999", "HN12345": // รองรับ Hospital ID ของ รพ. A
 		return r.hospitalAAdapter, nil
 	default:
-		// ถ้ามี Hospital B เพิ่มในอนาคต สามารถมาสวิตช์เพิ่มตรงนี้ได้ง่ายๆ
-		return nil, errors.New("unsupported or unknown hospital id")
+		return nil, errors.New("ไม่พบรหัสโรงพยาบาลนี้ในระบบ หรือยังไม่รองรับครับ")
 	}
 }
