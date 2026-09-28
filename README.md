@@ -52,8 +52,6 @@
 
 ## 3. วิธีเรียกใช้งาน API (API Usage)
 
-ระบบมี Endpoint หลักดังนี้ (รายละเอียดเพิ่มเติมดูได้จาก `docs/api_spec_th.md`):
-
 1. **เข้าสู่ระบบพนักงาน (Staff Login):**
    - **Method/Path:** `POST /staff/login`
    - **Body:** `{"username": "...", "password": "..."}`
@@ -61,7 +59,7 @@
 
 2. **ลงทะเบียนพนักงาน (Create Staff):**
    - **Method/Path:** `POST /staff/create`
-   - **Body:** `{"username": "...", "password": "...", "hospital_id": "..."}`
+   - **Body:** `{"username": "...", "password": "...", "hospital": "..."}`
 
 3. **ค้นหาข้อมูลผู้ป่วย (Search Patient - Protected):**
    - **Method/Path:** `GET /patient/search?national_id=...`
